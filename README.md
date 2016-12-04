@@ -6,6 +6,9 @@ It will be worth if you are going to build robust interaction between your Angul
 As the result you will have Java, JavaScript and TypeScript entities where TypeScript modules and components are
 compatible with Angular2.
 
+<h1>Live demo</h1>
+Live demo. Spring4 / Angular2 / Apache Thrift and t2ng - https://github.com/apocarteres/spring4-angular2-t2ng
+
 <h1>How to run using Docker</h1>
 - create folder ```idl``` and put some Thrift files inside (.thrift extension)
 - run docker
@@ -23,10 +26,3 @@ java -jar t2ng.jar -p myproject -i /path/to/idl -s /output/myproject
 
 <h1>How to build</h1>
 ```mvn clean compile assembly:single```
-
-<h1>Live demo</h1>
-Live demo. Spring4 and Angular2 via Apache Thrift
-
-Let's take a look how to use <b>t2ng</b> to wire Spring4 and Angular2
-
-#upload the code and improve readme
