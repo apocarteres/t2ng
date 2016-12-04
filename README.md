@@ -6,9 +6,14 @@ It will be worth if you are going to build robust interaction between your Angul
 
 
 - Run using Docker
+1. create folder ```idl``` and put some Thrift files inside
+2. Run docker
 ```
- docker run -it --rm -v=`pwd`/idl:/app/idl -v=`pwd`/out:/app/out -e "PROJECT_NAME=purple" apocarteres/t2ng
+ docker run -it --rm -v=`pwd`/idl:/app/idl -v=`pwd`/out:/app/out -e "PROJECT_NAME=myprojectname" apocarteres/t2ng
  ```
+NOTE: Don't forget set your project name via ```PROJECT_NAME``` environment variable
+3. Check out generatd files in ```out``` folder
+ 
  
  - Run locally
 ```
