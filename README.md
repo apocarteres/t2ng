@@ -14,7 +14,7 @@ compatible with Angular2.
  ```
 - check out generatd files in ```out``` folder
 
-NOTE: <b>Don't forget set your project name via ```PROJECT_NAME``` environment variable</b>
+<b>NOTE</b>: Don't forget set your project name via ```PROJECT_NAME``` environment variable
 
 <h1>How to run localy</h1>
 ```
