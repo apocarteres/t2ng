@@ -22,8 +22,9 @@ java -jar t2ng.jar -p myproject -i /path/to/idl -s /output/myproject
 ```
 
 <h1>How to build</h1>
-```mvn clean compile assemble:single```
+```mvn clean compile assembly:single```
 
+<h1>Live demo</h1>
 Live demo. Spring4 and Angular2 via Apache Thrift
 
 Let's take a look how to use <b>t2ng</b> to wire Spring4 and Angular2
