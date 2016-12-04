@@ -5,7 +5,7 @@ This is simple Java program which goal is to generate TypeScript files by provid
 It will be worth if you are going to build robust interaction between your Angular2 app and back-end.
 
 
-<h1>How to run using Docker
+<h1>How to run using Docker</h1>
 - create folder ```idl``` and put some Thrift files inside
 - run docker
 ```
@@ -14,12 +14,12 @@ It will be worth if you are going to build robust interaction between your Angul
 - check out generatd files in ```out``` folder
 NOTE: Don't forget set your project name via ```PROJECT_NAME``` environment variable
 
-<h1>How to run locally
+<h1>How to run locally</h1>
 ```
 java -jar t2ng.jar -p myproject -i /path/to/idl-folder -s /output/myproject
 ```
 
-<h1> How to build
+<h1>How to build</h1>
 ```mvn clean compile assemble:single```
 
 
