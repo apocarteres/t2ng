@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -25,19 +26,19 @@ import static java.util.stream.Collectors.toSet;
  */
 public final class Generator {
 
-    private static final Pattern THRIFT_ENUM_PATTERN = Pattern.compile(
+    private static final Pattern THRIFT_ENUM_PATTERN = compile(
             "enum\\s+(\\w+)"
     );
-    private static final Pattern THRIFT_TYPE_PATTERN = Pattern.compile(
+    private static final Pattern THRIFT_TYPE_PATTERN = compile(
             "struct\\s+(\\w+)"
     );
-    private static final Pattern THRIFT_SERVICE_PATTERN = Pattern.compile(
+    private static final Pattern THRIFT_SERVICE_PATTERN = compile(
             "service\\s+(\\w+)"
     );
-    private static final Pattern THRIFT_INCLUDE_PATTERN = Pattern.compile(
+    private static final Pattern THRIFT_INCLUDE_PATTERN = compile(
             "include\\s+\"(\\w+)\\.thrift\""
     );
-    private static final Pattern THRIFT_JS_NAMESPACE_PATTERN = Pattern.compile(
+    private static final Pattern THRIFT_JS_NAMESPACE_PATTERN = compile(
             "namespace\\s+js\\s+([\\w\\._]+)"
     );
 
@@ -192,7 +193,7 @@ public final class Generator {
         Set<String> services = capture(thriftContent, THRIFT_SERVICE_PATTERN);
         List<String> transformed = new ArrayList<>();
         for (String e : enums) {
-            Pattern pattern = Pattern.compile(
+            Pattern pattern = compile(
                     format("%s\\.%s\\s+=\\s+\\{(.*?)\\};", jsNs, e),
                     Pattern.DOTALL
             );
@@ -203,7 +204,7 @@ public final class Generator {
             }
         }
         for (String t : types) {
-            Pattern ctorPattern = Pattern.compile(
+            Pattern ctorPattern = compile(
                     format("%s\\.%s\\s+=\\s+function(.*?)\\};", jsNs, t),
                     Pattern.DOTALL
             );
@@ -211,11 +212,12 @@ public final class Generator {
             if (ctorMatcher.find()) {
                 String functionBody = ctorMatcher.group(1);
                 transformed.add(format("exports.%s = (function () { function %s %s}", t, t, functionBody));
-                Pattern prototypePattern = Pattern.compile(
-                        format("%s\\.(%s.prototype.*?)[\n]+\\};", jsNs, t),
+                transformed.add(format("%s.prototype = {};", t));
+                Pattern prototypePattern = compile(
+                        format("%s\\.(%s.prototype\\..*?)\\};", jsNs, t),
                         Pattern.DOTALL
                 );
-                Matcher prototypeMatcher = prototypePattern.matcher(jsText);
+                Matcher prototypeMatcher = prototypePattern.matcher(jsText.replaceAll("= \\{\\};","= {}"));
                 while (prototypeMatcher.find()) {
                     transformed.add(format("%s};", prototypeMatcher.group(1)));
                 }
@@ -224,7 +226,7 @@ public final class Generator {
             }
         }
         for (String s : services) {
-            Pattern ctorPattern = Pattern.compile(
+            Pattern ctorPattern = compile(
                     format("%s\\.%sClient\\s+=\\s+function(.*?)\\};", jsNs, s),
                     Pattern.DOTALL
             );
@@ -237,17 +239,17 @@ public final class Generator {
                         s,
                         functionBody
                 ));
-                Pattern servicePattern = Pattern.compile(
+                Pattern servicePattern = compile(
                         format("\\W+(\\s+%s\\.%s_.*?\\s+=\\s+function.*?)\\};", jsNs, s),
                         Pattern.DOTALL
                 );
-                Matcher servicePatterMatcher = servicePattern.matcher(jsText);
+                Matcher servicePatterMatcher = servicePattern.matcher(jsText.replaceAll("= \\{\\};","= {}"));
                 while (servicePatterMatcher.find()) {
                     String group = servicePatterMatcher.group(1);
                     transformed.add(format("%s};", group));
                 }
-                Pattern prototypePattern = Pattern.compile(
-                        format("%s\\.(%sClient.prototype.*?)[\n]+\\};", jsNs, s),
+                Pattern prototypePattern = compile(
+                        format("%s\\.(%sClient.prototype.*?)\\};", jsNs, s),
                         Pattern.DOTALL
                 );
                 Matcher prototypeMatcher = prototypePattern.matcher(jsText);
@@ -387,7 +389,7 @@ public final class Generator {
         List<String> imports = new ArrayList<>();
         for (String include : includes) {
             Set<String> symbols = new HashSet<>();
-            Pattern pattern = Pattern.compile(format("[^\\.\"]%s\\.(\\w+)", include));
+            Pattern pattern = compile(format("[^\\.\"]%s\\.(\\w+)", include));
             for (String string : strings) {
                 Matcher matcher = pattern.matcher(string);
                 while (matcher.find()) {
