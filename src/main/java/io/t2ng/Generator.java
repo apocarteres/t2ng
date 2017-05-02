@@ -14,6 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -56,7 +57,7 @@ public final class Generator {
             compileThrift(
                     thriftFile,
                     includeDirs,
-                    String.format("%s/java", generatedSourceDir),
+                    format("%s/java", generatedSourceDir),
                     "java:generated_annotations=undated,beans,hashcode"
             );
             compileThrift(thriftFile, includeDirs, outputPath, "js:ts");
@@ -103,11 +104,11 @@ public final class Generator {
                 if (i + 1 <= args.length - 1) {
                     String value = args[i + 1];
                     if (value.startsWith("-")) {
-                        throw new IllegalArgumentException(String.format("missed value for parameter %s", key));
+                        throw new IllegalArgumentException(format("missed value for parameter %s", key));
                     }
                     return Optional.of(value);
                 } else {
-                    throw new IllegalArgumentException(String.format("missed value for parameter %s", key));
+                    throw new IllegalArgumentException(format("missed value for parameter %s", key));
                 }
             }
         }
@@ -129,7 +130,7 @@ public final class Generator {
             String include
     ) {
         for (String dir : includeDirs) {
-            File file = new File(String.format(
+            File file = new File(format(
                     "%s/%s.thrift",
                     dir,
                     include
@@ -138,7 +139,7 @@ public final class Generator {
                 return file;
             }
         }
-        throw new RuntimeException(String.format("unable to resolve include file %s", include));
+        throw new RuntimeException(format("unable to resolve include file %s", include));
     }
 
     private static void composeJavaScriptModule(
@@ -149,7 +150,7 @@ public final class Generator {
             String projectName,
             String generatedSourceDir
     ) throws IOException {
-        String jsTempFile = String.format(
+        String jsTempFile = format(
                 "%s/%s.js.tmp",
                 outputPath,
                 jsNs
@@ -166,13 +167,13 @@ public final class Generator {
         String jsModuleName = jsTempFile.replace(".tmp", "");
         if (!new File(jsTempFile).renameTo(new File(jsModuleName))) {
             throw new RuntimeException(
-                    String.format("can't build module JavaScript module %s", jsModuleName)
+                    format("can't build module JavaScript module %s", jsModuleName)
             );
         }
         FileUtils.moveFile(
                 new File(jsModuleName),
                 new File(
-                        String.format(
+                        format(
                                 "%s/%s",
                                 jsGeneratedSourceDir(generatedSourceDir),
                                 new File(jsModuleName).getName()
@@ -192,69 +193,69 @@ public final class Generator {
         List<String> transformed = new ArrayList<>();
         for (String e : enums) {
             Pattern pattern = Pattern.compile(
-                    String.format("%s\\.%s\\s+=\\s+\\{(.*?)\\};", jsNs, e),
+                    format("%s\\.%s\\s+=\\s+\\{(.*?)\\};", jsNs, e),
                     Pattern.DOTALL
             );
             Matcher matcher = pattern.matcher(jsText);
             if (matcher.find()) {
                 String enumBody = matcher.group(1);
-                transformed.add(String.format("exports.%s = { %s }", e, enumBody));
+                transformed.add(format("exports.%s = { %s }", e, enumBody));
             }
         }
         for (String t : types) {
             Pattern ctorPattern = Pattern.compile(
-                    String.format("%s\\.%s\\s+=\\s+function(.*?)\\};", jsNs, t),
+                    format("%s\\.%s\\s+=\\s+function(.*?)\\};", jsNs, t),
                     Pattern.DOTALL
             );
             Matcher ctorMatcher = ctorPattern.matcher(jsText);
             if (ctorMatcher.find()) {
                 String functionBody = ctorMatcher.group(1);
-                transformed.add(String.format("exports.%s = (function () { function %s %s}", t, t, functionBody));
+                transformed.add(format("exports.%s = (function () { function %s %s}", t, t, functionBody));
                 Pattern prototypePattern = Pattern.compile(
-                        String.format("%s\\.(%s.prototype.*?)\\};", jsNs, t),
+                        format("%s\\.(%s.prototype.*?)[\n]+\\};", jsNs, t),
                         Pattern.DOTALL
                 );
                 Matcher prototypeMatcher = prototypePattern.matcher(jsText);
                 while (prototypeMatcher.find()) {
-                    transformed.add(String.format("%s};", prototypeMatcher.group(1)));
+                    transformed.add(format("%s};", prototypeMatcher.group(1)));
                 }
-                transformed.add(String.format("return %s;", t));
-                transformed.add("}());");
+                transformed.add(format("return %s;", t));
+                transformed.add(format("})();%n"));
             }
         }
         for (String s : services) {
             Pattern ctorPattern = Pattern.compile(
-                    String.format("%s\\.%sClient\\s+=\\s+function(.*?)\\};", jsNs, s),
+                    format("%s\\.%sClient\\s+=\\s+function(.*?)\\};", jsNs, s),
                     Pattern.DOTALL
             );
             Matcher ctorMatcher = ctorPattern.matcher(jsText);
             if (ctorMatcher.find()) {
                 String functionBody = ctorMatcher.group(1);
-                transformed.add(String.format("exports.%sClient = (function () { ", s));
-                transformed.add(String.format(
+                transformed.add(format("exports.%sClient = (function () { ", s));
+                transformed.add(format(
                         "function %sClient %s}",
                         s,
                         functionBody
                 ));
                 Pattern servicePattern = Pattern.compile(
-                        String.format("\\W+(\\s+%s\\.%s_.*?\\s+=\\s+function.*?)\\};", jsNs, s),
+                        format("\\W+(\\s+%s\\.%s_.*?\\s+=\\s+function.*?)\\};", jsNs, s),
                         Pattern.DOTALL
                 );
                 Matcher servicePatterMatcher = servicePattern.matcher(jsText);
                 while (servicePatterMatcher.find()) {
                     String group = servicePatterMatcher.group(1);
-                    transformed.add(String.format("%s};", group));
+                    transformed.add(format("%s};", group));
                 }
                 Pattern prototypePattern = Pattern.compile(
-                        String.format("%s\\.(%sClient.prototype.*?)\\};", jsNs, s),
+                        format("%s\\.(%sClient.prototype.*?)[\n]+\\};", jsNs, s),
                         Pattern.DOTALL
                 );
                 Matcher prototypeMatcher = prototypePattern.matcher(jsText);
                 while (prototypeMatcher.find()) {
-                    transformed.add(String.format("%s};", prototypeMatcher.group(1)));
+                    transformed.add(format("%s};", prototypeMatcher.group(1)));
                 }
-                transformed.add(String.format("return %sClient;", s));
-                transformed.add("}());");
+                transformed.add(format("return %sClient;", s));
+                transformed.add(format("})();%n"));
             }
         }
         return transformed;
@@ -271,7 +272,7 @@ public final class Generator {
                         extractJsNamespace(readFile(resolveFile(includeDirs, include)), include)
                 ).collect(Collectors.toList());
         imports.add(jsNs);
-        return imports.stream().map(s -> String.format(
+        return imports.stream().map(s -> format(
                 "var %s = require ('%s/%s');",
                 s,
                 projectName,
@@ -288,7 +289,7 @@ public final class Generator {
             String projectName,
             String generatedSourceDir
     ) throws IOException {
-        String tsTempFile = String.format(
+        String tsTempFile = format(
                 "%s/%s.d.ts.tmp",
                 outputPath,
                 jsNs
@@ -314,13 +315,13 @@ public final class Generator {
         String tsModuleName = tsTempFile.replace(".tmp", "");
         if (!new File(tsTempFile).renameTo(new File(tsModuleName))) {
             throw new RuntimeException(
-                    String.format("can't build module TypeScript module %s", tsModuleName)
+                    format("can't build module TypeScript module %s", tsModuleName)
             );
         }
         FileUtils.moveFile(
                 new File(tsModuleName),
                 new File(
-                        String.format(
+                        format(
                                 "%s/%s",
                                 tsGeneratedSourceDir(generatedSourceDir),
                                 new File(tsModuleName).getName()
@@ -341,7 +342,7 @@ public final class Generator {
         Set<String> serviceClients = capture(
                 strings,
                 THRIFT_SERVICE_PATTERN
-        ).stream().map(s -> String.format("%sClient", s)).collect(
+        ).stream().map(s -> format("%sClient", s)).collect(
                 Collectors.toSet());
         Set<String> classes = new HashSet<String>() {{
             addAll(types);
@@ -360,15 +361,15 @@ public final class Generator {
                 continue;
             }
             for (String e : enums) {
-                s = s.replaceFirst(String.format("^\\s+enum\\s+%s\\s+\\{", e), String.format("export enum %s {", e));
+                s = s.replaceFirst(format("^\\s+enum\\s+%s\\s+\\{", e), format("export enum %s {", e));
             }
             for (String e : classes) {
-                s = s.replaceFirst(String.format("^\\s+class\\s+%s\\s+\\{", e), String.format("export class %s {", e));
+                s = s.replaceFirst(format("^\\s+class\\s+%s\\s+\\{", e), format("export class %s {", e));
             }
-            s = s.replaceAll(String.format("%s\\.", jsNs), "");
+            s = s.replaceAll(format("%s\\.", jsNs), "");
             s = s.replaceAll("^\\s+", "");
             for (String include : includedNamespaces) {
-                s = s.replaceAll(String.format("[^\"]%s\\.", include), "");
+                s = s.replaceAll(format("[^\"]%s\\.", include), "");
             }
             adapted.add(s);
         }
@@ -386,14 +387,14 @@ public final class Generator {
         List<String> imports = new ArrayList<>();
         for (String include : includes) {
             Set<String> symbols = new HashSet<>();
-            Pattern pattern = Pattern.compile(String.format("[^\\.\"]%s\\.(\\w+)", include));
+            Pattern pattern = Pattern.compile(format("[^\\.\"]%s\\.(\\w+)", include));
             for (String string : strings) {
                 Matcher matcher = pattern.matcher(string);
                 while (matcher.find()) {
                     symbols.add(matcher.group(1));
                 }
             }
-            imports.addAll(symbols.stream().map(symbol -> String.format(
+            imports.addAll(symbols.stream().map(symbol -> format(
                     "import { %s } from '%s/%s'",
                     symbol,
                     projectName,
@@ -410,7 +411,7 @@ public final class Generator {
         Set<String> capture = capture(strings, THRIFT_JS_NAMESPACE_PATTERN);
         if (capture.size() != 1) {
             throw new RuntimeException(
-                    String.format(
+                    format(
                             "incorrect or missing JavaScript namespace in Thrift file %s",
                             fileName
                     )
@@ -420,7 +421,7 @@ public final class Generator {
     }
 
     private static String joinLines(Collection<String> strings) {
-        return String.join(String.format("%n"), strings);
+        return String.join(format("%n"), strings);
     }
 
     private static Collection<File> listThriftFiles(String inputDir) {
@@ -479,7 +480,7 @@ public final class Generator {
             add(options);
             add(thriftFilePath);
         }}).start().waitFor() != 0) {
-            throw new RuntimeException(String.format("can't compile Thrift file %s for Java", thriftFilePath));
+            throw new RuntimeException(format("can't compile Thrift file %s for Java", thriftFilePath));
         }
     }
 
@@ -488,11 +489,11 @@ public final class Generator {
             String thriftFilePath,
             String tempDir
     ) {
-        String outputPath = String.format("%s/%s", tempDir, jsNs);
+        String outputPath = format("%s/%s", tempDir, jsNs);
         if (!new File(outputPath).exists()) {
             if (!new File(outputPath).mkdirs()) {
                 throw new RuntimeException(
-                        String.format(
+                        format(
                                 "can't create directory %s for %s",
                                 outputPath,
                                 thriftFilePath
@@ -508,16 +509,16 @@ public final class Generator {
             String tempDir
     ) {
         if (FileUtils.deleteQuietly(new File(generatedSourceDir))) {
-            System.out.println(String.format("wiped output generated source directory %s", generatedSourceDir));
+            System.out.println(format("wiped output generated source directory %s", generatedSourceDir));
         }
         if (FileUtils.deleteQuietly(new File(tempDir))) {
-            System.out.println(String.format("wiped temp directory %s", tempDir));
+            System.out.println(format("wiped temp directory %s", tempDir));
         }
         if (!new File(tempDir).mkdirs()) {
-            throw new RuntimeException(String.format("can't init temp directory at %s", tempDir));
+            throw new RuntimeException(format("can't init temp directory at %s", tempDir));
         }
         if (!new File(generatedSourceDir).mkdirs()) {
-            throw new RuntimeException(String.format(
+            throw new RuntimeException(format(
                     "can't init generated source directory at %s",
                     generatedSourceDir
             ));
@@ -527,7 +528,7 @@ public final class Generator {
                 jsGeneratedSourceDir(generatedSourceDir),
                 tsGeneratedSourceDir(generatedSourceDir)}) {
             if (!new File(dir).mkdirs()) {
-                throw new RuntimeException(String.format("can't init generated source directory at %s", dir));
+                throw new RuntimeException(format("can't init generated source directory at %s", dir));
             }
         }
     }
@@ -536,7 +537,7 @@ public final class Generator {
         List<String> result = new ArrayList<>();
         result.add(root);
         for (String s : new File(root).list(DirectoryFileFilter.DIRECTORY)) {
-            result.addAll(includeDirs(String.format("%s/%s", root, s)));
+            result.addAll(includeDirs(format("%s/%s", root, s)));
         }
         return result;
     }
@@ -564,7 +565,7 @@ public final class Generator {
             String jsNs,
             String projectName
     ) {
-        return String.format(
+        return format(
                 "declare module '%s/%s' {",
                 projectName,
                 jsNs
@@ -572,14 +573,14 @@ public final class Generator {
     }
 
     private static String javaGeneratedSourceDir(String generatedSourceDir) {
-        return String.format("%s/java", generatedSourceDir);
+        return format("%s/java", generatedSourceDir);
     }
 
     private static String jsGeneratedSourceDir(String generatedSourceDir) {
-        return String.format("%s/js", generatedSourceDir);
+        return format("%s/js", generatedSourceDir);
     }
 
     private static String tsGeneratedSourceDir(String generatedSourceDir) {
-        return String.format("%s/ts", generatedSourceDir);
+        return format("%s/ts", generatedSourceDir);
     }
 }
