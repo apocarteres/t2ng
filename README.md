@@ -10,7 +10,7 @@ compatible with Angular2.
 Live demo. Spring4 / Angular2 / Apache Thrift and t2ng - https://github.com/apocarteres/spring4-angular2-t2ng
 
 <h1>How to run using Docker</h1>
-- create folder ```idl``` and put some Thrift files inside (.thrift extension)
+- create folder ```idl``` and put some Thrift files (.thrift extension) inside it
 - run docker
 ```
  docker run -it --rm -v=`pwd`/idl:/app/idl -v=`pwd`/out:/app/out -e "PROJECT_NAME=myprojectname" apocarteres/t2ng
@@ -19,7 +19,7 @@ Live demo. Spring4 / Angular2 / Apache Thrift and t2ng - https://github.com/apoc
 
 <b>NOTE</b>: Don't forget set your project name via ```PROJECT_NAME``` environment variable
 
-<h1>How to run localy</h1>
+<h1>How to run locally</h1>
 ```
 java -jar t2ng.jar -p myproject -i /path/to/idl -s /output/myproject
 ```
