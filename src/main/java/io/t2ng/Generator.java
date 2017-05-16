@@ -32,6 +32,9 @@ public final class Generator {
     private static final Pattern THRIFT_TYPE_PATTERN = compile(
             "struct\\s+(\\w+)"
     );
+    private static final Pattern THRIFT_EXCEPTION_PATTERN = compile(
+            "exception\\s+(\\w+)"
+    );
     private static final Pattern THRIFT_SERVICE_PATTERN = compile(
             "service\\s+(\\w+)"
     );
@@ -183,41 +186,37 @@ public final class Generator {
         );
     }
 
-    private static List<String> adaptJavaScriptFile(
-            List<String> thriftContent,
-            String jsText,
-            String jsNs
-    ) {
+    private static List<String> adaptJavaScriptFile(List<String> thriftContent, String jsText, String jsNs) {
         Set<String> enums = capture(thriftContent, THRIFT_ENUM_PATTERN);
         Set<String> types = capture(thriftContent, THRIFT_TYPE_PATTERN);
         Set<String> services = capture(thriftContent, THRIFT_SERVICE_PATTERN);
+        Set<String> exceptions = capture(thriftContent, THRIFT_EXCEPTION_PATTERN);
         List<String> transformed = new ArrayList<>();
         for (String e : enums) {
-            Pattern pattern = compile(
-                    format("%s\\.%s\\s+=\\s+\\{(.*?)\\};", jsNs, e),
-                    Pattern.DOTALL
-            );
+            Pattern pattern = compile(format("%s\\.%s\\s+=\\s+\\{(.*?)\\};", jsNs, e), Pattern.DOTALL);
             Matcher matcher = pattern.matcher(jsText);
             if (matcher.find()) {
                 String enumBody = matcher.group(1);
                 transformed.add(format("exports.%s = { %s }", e, enumBody));
             }
         }
+        types.addAll(exceptions);
         for (String t : types) {
-            Pattern ctorPattern = compile(
-                    format("%s\\.%s\\s+=\\s+function(.*?)\\};", jsNs, t),
-                    Pattern.DOTALL
-            );
+            Pattern ctorPattern = compile(format("%s\\.%s\\s+=\\s+function(.*?)\\};", jsNs, t), Pattern.DOTALL);
             Matcher ctorMatcher = ctorPattern.matcher(jsText);
             if (ctorMatcher.find()) {
                 String functionBody = ctorMatcher.group(1);
                 transformed.add(format("exports.%s = (function () { function %s %s}", t, t, functionBody));
                 transformed.add(format("%s.prototype = {};", t));
+                if (exceptions.contains(t)) {
+                    transformed.add(format("Thrift.inherits(%s, Thrift.TException);", t));
+                    transformed.add(format("%s.prototype.name = '%s';", t, t));
+                }
                 Pattern prototypePattern = compile(
-                        format("%s\\.(%s.prototype\\..*?)\\};", jsNs, t),
+                        format("%s\\.(%s.prototype\\.(?:read|write).*?)\\};", jsNs, t),
                         Pattern.DOTALL
                 );
-                Matcher prototypeMatcher = prototypePattern.matcher(jsText.replaceAll("= \\{\\};","= {}"));
+                Matcher prototypeMatcher = prototypePattern.matcher(jsText.replaceAll("= \\{\\};", "= {}"));
                 while (prototypeMatcher.find()) {
                     transformed.add(format("%s};", prototypeMatcher.group(1)));
                 }
@@ -226,10 +225,7 @@ public final class Generator {
             }
         }
         for (String s : services) {
-            Pattern ctorPattern = compile(
-                    format("%s\\.%sClient\\s+=\\s+function(.*?)\\};", jsNs, s),
-                    Pattern.DOTALL
-            );
+            Pattern ctorPattern = compile(format("%s\\.%sClient\\s+=\\s+function(.*?)\\};", jsNs, s), Pattern.DOTALL);
             Matcher ctorMatcher = ctorPattern.matcher(jsText);
             if (ctorMatcher.find()) {
                 String functionBody = ctorMatcher.group(1);
@@ -243,7 +239,7 @@ public final class Generator {
                         format("\\W+(\\s+%s\\.%s_.*?\\s+=\\s+function.*?)\\};", jsNs, s),
                         Pattern.DOTALL
                 );
-                Matcher servicePatterMatcher = servicePattern.matcher(jsText.replaceAll("= \\{\\};","= {}"));
+                Matcher servicePatterMatcher = servicePattern.matcher(jsText.replaceAll("= \\{\\};", "= {}"));
                 while (servicePatterMatcher.find()) {
                     String group = servicePatterMatcher.group(1);
                     transformed.add(format("%s};", group));
@@ -406,10 +402,7 @@ public final class Generator {
         return imports;
     }
 
-    private static String extractJsNamespace(
-            List<String> strings,
-            String fileName
-    ) {
+    private static String extractJsNamespace(List<String> strings, String fileName) {
         Set<String> capture = capture(strings, THRIFT_JS_NAMESPACE_PATTERN);
         if (capture.size() != 1) {
             throw new RuntimeException(
@@ -461,12 +454,8 @@ public final class Generator {
         }
     }
 
-    private static void compileThrift(
-            File file,
-            List<String> includeDirs,
-            String outputPath,
-            String options
-    ) throws IOException, InterruptedException {
+    private static void compileThrift(File file, List<String> includeDirs, String outputPath, String options) throws
+            IOException, InterruptedException {
         String thriftFilePath = file.getAbsolutePath();
         List<String> includes = new ArrayList<>();
         for (String includeDir : includeDirs) {
@@ -486,11 +475,7 @@ public final class Generator {
         }
     }
 
-    private static String findOrCreateDirectory(
-            String jsNs,
-            String thriftFilePath,
-            String tempDir
-    ) {
+    private static String findOrCreateDirectory(String jsNs, String thriftFilePath, String tempDir) {
         String outputPath = format("%s/%s", tempDir, jsNs);
         if (!new File(outputPath).exists()) {
             if (!new File(outputPath).mkdirs()) {
@@ -506,10 +491,7 @@ public final class Generator {
         return outputPath;
     }
 
-    private static void initFsTree(
-            String generatedSourceDir,
-            String tempDir
-    ) {
+    private static void initFsTree(String generatedSourceDir, String tempDir) {
         if (FileUtils.deleteQuietly(new File(generatedSourceDir))) {
             System.out.println(format("wiped output generated source directory %s", generatedSourceDir));
         }
@@ -544,17 +526,11 @@ public final class Generator {
         return result;
     }
 
-    private static Set<String> capture(
-            Collection<String> input,
-            Pattern pattern
-    ) {
+    private static Set<String> capture(Collection<String> input, Pattern pattern) {
         return input.stream().flatMap(s -> capture(s, pattern).stream()).collect(toSet());
     }
 
-    private static List<String> capture(
-            String input,
-            Pattern pattern
-    ) {
+    private static List<String> capture(String input, Pattern pattern) {
         Matcher matcher = pattern.matcher(input);
         List<String> result = new ArrayList<>();
         while (matcher.find()) {
@@ -563,10 +539,7 @@ public final class Generator {
         return result;
     }
 
-    private static String makeTypeScriptModuleDeclaration(
-            String jsNs,
-            String projectName
-    ) {
+    private static String makeTypeScriptModuleDeclaration(String jsNs, String projectName) {
         return format(
                 "declare module '%s/%s' {",
                 projectName,
