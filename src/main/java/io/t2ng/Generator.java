@@ -287,11 +287,7 @@ public final class Generator {
             String projectName,
             String generatedSourceDir
     ) throws IOException {
-        String tsTempFile = format(
-                "%s/%s.d.ts.tmp",
-                outputPath,
-                jsNs
-        );
+        String tsTempFile = format("%s/%s.d.ts.tmp", outputPath, jsNs);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(tsTempFile))) {
             writer.write(makeTypeScriptModuleDeclaration(jsNs, projectName));
             writer.newLine();
@@ -393,7 +389,7 @@ public final class Generator {
                 }
             }
             imports.addAll(symbols.stream().map(symbol -> format(
-                    "import { %s } from '%s/%s'",
+                    "import { %s } from '%s/%s';",
                     symbol,
                     projectName,
                     extractJsNamespace(readFile(resolveFile(includeDirs, include)), include)
@@ -540,11 +536,7 @@ public final class Generator {
     }
 
     private static String makeTypeScriptModuleDeclaration(String jsNs, String projectName) {
-        return format(
-                "declare module '%s/%s' {",
-                projectName,
-                jsNs
-        );
+        return format("declare module '%s/%s' {", projectName, jsNs);
     }
 
     private static String javaGeneratedSourceDir(String generatedSourceDir) {
