@@ -367,7 +367,9 @@ public final class Generator {
             }
             adapted.add(s);
         }
-        adapted.remove(adapted.size() - 1);
+        if (!adapted.isEmpty()) {
+            adapted.remove(adapted.size() - 1);
+        }
         return adapted;
     }
 
