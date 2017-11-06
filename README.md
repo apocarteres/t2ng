@@ -26,3 +26,8 @@ java -jar t2ng.jar -p myproject -i /path/to/idl -s /output/myproject
 
 <h1>How to build</h1>
 ```mvn clean compile assembly:single```
+
+build and push Docker container
+
+```docker build .```
+```docker push apocarteres/t2ng```
