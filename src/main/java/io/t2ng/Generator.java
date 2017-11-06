@@ -1,12 +1,10 @@
 package io.t2ng;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.*;
@@ -15,9 +13,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static java.lang.String.join;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.io.FileUtils.moveFile;
 
 /**
  * Generates TypeScript contract, JavaScript implementation and Java beans
@@ -50,6 +50,7 @@ public final class Generator {
         String tempDir = Files.createTempDirectory(projectName).toFile().getAbsolutePath();
         String inputDir = resolveInputDir(args);
         String generatedSourceDir = resolveGeneratedSourceDir(args);
+        boolean mergeJsFiles = resolveMergeJsFilesOption(args);
         initFsTree(generatedSourceDir, tempDir);
         for (File thriftFile : listThriftFiles(inputDir)) {
             List<String> thriftContent = readFile(thriftFile);
@@ -72,6 +73,23 @@ public final class Generator {
             listTypeScriptFiles(outputPath).forEach(File::delete);
             listJavaScriptFiles(outputPath).forEach(File::delete);
         }
+        if (mergeJsFiles) {
+            Collection<File> files = listJavaScriptFiles(generatedSourceDir);
+            StringBuilder builder = new StringBuilder();
+            for (File file : files) {
+                try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                    builder.append(join(format("%n"), reader.lines().collect(toList())));
+                }
+            }
+            files.forEach(File::delete);
+            try (Writer writer = new FileWriter(format("%s/js/all.js", generatedSourceDir))) {
+                IOUtils.write(builder.toString(), writer);
+            }
+        }
+    }
+
+    private static boolean resolveMergeJsFilesOption(String[] args) {
+        return Arrays.stream(args).filter(s -> s.equals("-m")).count() > 0;
     }
 
     private static String resolveProjectName(String[] args) {
@@ -174,7 +192,7 @@ public final class Generator {
                     format("can't build module JavaScript module %s", jsModuleName)
             );
         }
-        FileUtils.moveFile(
+        moveFile(
                 new File(jsModuleName),
                 new File(
                         format(
@@ -312,7 +330,7 @@ public final class Generator {
                     format("can't build module TypeScript module %s", tsModuleName)
             );
         }
-        FileUtils.moveFile(
+        moveFile(
                 new File(tsModuleName),
                 new File(
                         format(
@@ -362,6 +380,7 @@ public final class Generator {
             }
             s = s.replaceAll(format("%s\\.", jsNs), "");
             s = s.replaceAll("^\\s+", "");
+            s = s.replaceAll("/\\*.+?\\*/","");/*comments when export from other Thrift file*/
             for (String include : includedNamespaces) {
                 s = s.replaceAll(format("[^\"]%s\\.", include), "");
             }
@@ -414,7 +433,7 @@ public final class Generator {
     }
 
     private static String joinLines(Collection<String> strings) {
-        return String.join(format("%n"), strings);
+        return join(format("%n"), strings);
     }
 
     private static Collection<File> listThriftFiles(String inputDir) {
