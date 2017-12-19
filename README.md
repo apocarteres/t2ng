@@ -10,13 +10,14 @@ compatible with Angular2.
 Live demo. Spring4 / Angular2 / Apache Thrift and t2ng - https://github.com/apocarteres/spring4-angular2-t2ng
 
 <h1>How to run using Docker</h1>
+
 - create folder <code>idl</code> and put some Thrift files (.thrift extension) inside it
+
 - run docker
 
 ```
  docker run -it --rm -v=`pwd`/idl:/app/idl -v=`pwd`/out:/app/out -e "PROJECT_NAME=myprojectname" apocarteres/t2ng
  ```
-
 - check out generatd files in <code>out</code> folder
 
 <b>NOTE</b>: Don't forget set your project name via <code>PROJECT_NAME</code> environment variable
