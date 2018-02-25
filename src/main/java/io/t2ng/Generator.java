@@ -209,15 +209,13 @@ public final class Generator {
         Set<String> types = capture(thriftContent, THRIFT_TYPE_PATTERN);
         Set<String> services = capture(thriftContent, THRIFT_SERVICE_PATTERN);
         Set<String> exceptions = capture(thriftContent, THRIFT_EXCEPTION_PATTERN);
-        Set<String> exports = new HashSet<>();
         List<String> transformed = new ArrayList<>();
         for (String e : enums) {
             Pattern pattern = compile(format("%s\\.%s\\s+=\\s+\\{(.*?)\\};", jsNs, e), Pattern.DOTALL);
             Matcher matcher = pattern.matcher(jsText);
             if (matcher.find()) {
                 String enumBody = matcher.group(1);
-                transformed.add(format("let %s = { %s }", e, enumBody));
-                exports.add(e);
+                transformed.add(format("exports.%s = { %s }", e, enumBody));
             }
         }
         types.addAll(exceptions);
@@ -226,8 +224,7 @@ public final class Generator {
             Matcher ctorMatcher = ctorPattern.matcher(jsText);
             if (ctorMatcher.find()) {
                 String functionBody = ctorMatcher.group(1);
-                transformed.add(format("let %s = (function () { function %s %s}", t, t, functionBody));
-                exports.add(t);
+                transformed.add(format("exports.%s = (function () { function %s %s}", t, t, functionBody));
                 transformed.add(format("%s.prototype = {};", t));
                 if (exceptions.contains(t)) {
                     transformed.add(format("Thrift.inherits(%s, Thrift.TException);", t));
@@ -250,9 +247,7 @@ public final class Generator {
             Matcher ctorMatcher = ctorPattern.matcher(jsText);
             if (ctorMatcher.find()) {
                 String functionBody = ctorMatcher.group(1);
-                String client = format("%sClient",s);
-                transformed.add(format("let %s = (function () { ", client));
-                exports.add(client);
+                transformed.add(format("exports.%sClient = (function () { ", s));
                 transformed.add(format(
                         "function %sClient %s}",
                         s,
@@ -279,7 +274,6 @@ public final class Generator {
                 transformed.add(format("})();%n"));
             }
         }
-        transformed.add(format("export { %s };", String.join(",", exports)));
         return transformed;
     }
 
