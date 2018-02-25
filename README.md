@@ -29,5 +29,5 @@ java -jar t2ng.jar -p myproject -i /path/to/idl -s /output/myproject
 
 build and push Docker container
 
-```docker build .```
+```docker build -t apocarteres/t2ng .```
 ```docker push apocarteres/t2ng```
