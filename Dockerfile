@@ -1,4 +1,4 @@
-FROM thrift:0.9.3
+FROM thrift:0.11.0
 MAINTAINER Alexander Paderin <apocarteres@gmail.com>
 
 ENV RELEASE 0.0.1-SNAPSHOT

@@ -22,10 +22,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.lang.String.join;
+import static java.util.Objects.requireNonNull;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -183,7 +183,7 @@ public final class Generator {
     List<String> includeDirs,
     String projectName,
     String generatedSourceDir
-  ) throws IOException {
+  ) throws IOException, InterruptedException {
     String jsTempFile = format(
       "%s/%s.js.tmp",
       outputPath,
@@ -195,7 +195,8 @@ public final class Generator {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(jsTempFile))) {
       writer.write(joinLines(composeJavaScriptImports(thriftContent, jsNs, includeDirs, projectName)));
       writer.newLine();
-      writer.write(joinLines(adaptJavaScriptFile(thriftContent, jsText, jsNs)));
+//      writer.write(joinLines(adaptJavaScriptFile(thriftContent, jsText, jsNs)));
+      writer.write(jsText);
       writer.newLine();
     }
     String jsModuleName = jsTempFile.replace(".tmp", "");
@@ -204,16 +205,24 @@ public final class Generator {
         format("can't build module JavaScript module %s", jsModuleName)
       );
     }
-    moveFile(
-      new File(jsModuleName),
-      new File(
-        format(
-          "%s/%s",
-          jsGeneratedSourceDir(generatedSourceDir),
-          new File(jsModuleName).getName()
-        )
-      )
+    String targetFileName = format(
+      "%s/%s",
+      jsGeneratedSourceDir(generatedSourceDir),
+      new File(jsModuleName).getName()
     );
+    moveFile(new File(jsModuleName), new File(targetFileName));
+    codeStyleFormat(targetFileName);
+  }
+
+  private static void codeStyleFormat(String targetFileName) throws InterruptedException, IOException {
+//    if (new ProcessBuilder(new ArrayList<String>() {{
+//      add("clang-format");
+//      add("-style=Google");
+//      add("-i");
+//      add(targetFileName);
+//    }}).start().waitFor() != 0) {
+//      throw new RuntimeException(format("can't format JS %s", targetFileName));
+//    }
   }
 
   private static List<String> adaptJavaScriptFile(List<String> thriftContent, String jsText, String jsNs) {
@@ -286,7 +295,7 @@ public final class Generator {
         transformed.add(format("})();%n"));
       }
     }
-    return transformed.stream().map(s->s.replaceAll(format("%s\\.", jsNs),"")).collect(toList());
+    return transformed.stream().map(s -> s.replaceAll(format("%s\\.", jsNs), "")).collect(toList());
   }
 
   private static Collection<String> composeJavaScriptImports(
@@ -299,15 +308,13 @@ public final class Generator {
       .map(include ->
         extractJsNamespace(readFile(resolveFile(includeDirs, include)), include)
       ).collect(toList());
-    Set<String> result = imports.stream().map(s -> format(
+    imports.add(jsNs);
+    return imports.stream().map(s -> format(
       "var %s = require ('%s/%s');",
       s,
       projectName,
       s
     )).collect(toSet());
-    result.add(format("var %s = {};", jsNs));
-    result.add("");
-    return result;
   }
 
   private static void composeTypeScriptModule(
@@ -318,7 +325,7 @@ public final class Generator {
     List<String> includeDirs,
     String projectName,
     String generatedSourceDir
-  ) throws IOException {
+  ) throws IOException, InterruptedException {
     String tsTempFile = format("%s/%s.d.ts.tmp", outputPath, jsNs);
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tsTempFile))) {
       writer.write(makeTypeScriptModuleDeclaration(jsNs, projectName));
@@ -346,16 +353,9 @@ public final class Generator {
         format("can't build module TypeScript module %s", tsModuleName)
       );
     }
-    moveFile(
-      new File(tsModuleName),
-      new File(
-        format(
-          "%s/%s",
-          tsGeneratedSourceDir(generatedSourceDir),
-          new File(tsModuleName).getName()
-        )
-      )
-    );
+    String targetFileName = format("%s/%s", tsGeneratedSourceDir(generatedSourceDir), new File(tsModuleName).getName());
+    moveFile(new File(tsModuleName), new File(targetFileName));
+    codeStyleFormat(targetFileName);
   }
 
   private static List<String> adaptTypeScriptFile(
@@ -553,7 +553,7 @@ public final class Generator {
   private static List<String> includeDirs(String root) {
     List<String> result = new ArrayList<>();
     result.add(root);
-    for (String s : new File(root).list(DirectoryFileFilter.DIRECTORY)) {
+    for (String s : requireNonNull(new File(root).list(DirectoryFileFilter.DIRECTORY))) {
       result.addAll(includeDirs(format("%s/%s", root, s)));
     }
     return result;
